@@ -1,6 +1,6 @@
 # Vue PouchDB Lite
 
-A really lite Vue plugin to get your DB's in every instance.
+A really lite Vue plugin to get your PouchDB databases in every instance.
 
 ##### Some content extracted from https://github.com/MDSLKTR/pouch-vue with a lot of api changes though.
 
@@ -16,7 +16,7 @@ Install via npm:
     yarn add vue-pouchdb-lite
 ```
 
-You should have `PouchDB` already imported :
+You should have `PouchDB` already present in the scope :
 ```javascript
 import PouchDB from "pouchdb-browser";
 ```
@@ -31,39 +31,43 @@ Then, plug vue-pouchdb-lite into Vue: (eg: in main.js)
 ```javascript
 import VuePouchdbLite from "vue-pouchdb-lite";
 
-Vue.use(VuePouchdbLite, {
-  defaultDB: "local_or_remote_database"
-});
+Vue.use(VuePouchdbLite, "FooDB");
+```
+or, if you want some defaults upon database creation.
+
+```javascript
+Vue.use(VuePouchdbLite, "FooDB", PouchDB.default({prefix: 'Bar'}));
 ```
 
 ## API
 ### $pouch
 
-`$pouch` is a Proxy object targeting the default database, meaning you have access to the whole PouchDB API, even the methods added by plugins.
-`$pouch` allow you to access all databases instantiated with `$pouch.get('database_URI', options)` 
+* `$pouch` is a Proxy object targeting the default database, meaning you have access to the whole PouchDB API, even the methods added by plugins.
+* `$pouch` allow you to access all databases instantiated with it.
 
-`$pouch` is made available as an instance property, meaning you can access it in any views or components.
+* `$pouch` is made available as an instance property, meaning you can access it in any views or components.
 
 ```vue
 <script>
   export default {
     created: function() {
-      this.$pouch.sync('todos', 'http://localhost:5984/todos', options);
+      this.$pouch.sync('http://localhost:5984/todos', options);
     }
   }
 </script>
 ```
 
-Once created the database are accessible through `$pouch['database_URI']`
+Once created, the database are accessible through `$pouch['database_URI']`
 
-You'll have to add the listeners by yourself.
+You'll have to add the needed listeners by yourself.
 
 #### Methods
 
-* `$pouch.get(database, OPTIONAL options)`: Returns the database object from memory or newly created.
+* `$pouch.get(database, [options])`: Returns the database object from memory or anewly created one.
 
-* `$pouch.defaults(options)`: same as https://pouchdb.com/api.html#defaults___
-* `$pouch.sync(localDatabase, OPTIONAL remoteDatabase, OPTIONAL options)`: The optional remoteDatabase parameter will use the default db set in the pouch options initially. Basically the same as PouchDB.sync(local, remote, {live: true, retry: true}). Also, if the browser has an active session cookie, it will fetch session data (username, etc) from the remote server. **BONUS:** If your remote database runs CouchDB 2.0 or higher, you can also specify a Mango Selector that is used to filter documents coming from the remote server. Callback functions will be invoked with the name `pouchdb-[method]-[type]`. So in this case you can use `this.$on('pouchdb-sync-change', callback(data))` to listen when a change occurs. See https://pouchdb.com/api.html#sync for a full list of events you can use.
+* `$pouch.defaults(options)`: same as [#defaults](https://pouchdb.com/api.html#defaults)
+* `$pouch.sync(otherDatabase, [options])`: Basically the same as PouchDB.sync(local, remote, {live: true, retry: true}). Also, if the browser has an active session cookie, it will fetch session data (username, etc) from the remote server. 
+**BONUS:** If your remote database runs CouchDB 2.0 or higher, you can also specify a Mango Selector that is used to filter documents coming from the remote server. Callback functions will be invoked with the name `pouchdb-[method]-[type]`. So in this case you can use `this.$on('pouchdb-sync-change', callback(data))` to listen when a change occurs. See https://pouchdb.com/api.html#sync for a full list of events you can use.
 
 * `$pouch.connect(username, password, OPTIONAL db)`: Connects you to the defaultDB or given remote DB and returns the user object on success.
 
@@ -71,7 +75,9 @@ You'll have to add the listeners by yourself.
 
 * `$pouch.createUser(name, password, OPTIONAL db)`: Creates a user in the defaultDB or given remote DB and starts a new session.
 
-**That's it for the new methods. Do not forget the whole PouchDB API is avaliable.**
+**That's it for the new methods. Do not forget, the whole PouchDB API is directly avaliable.**
+
+see :https://pouchdb.com/api.html
 
 default options (will be merged with the options passed in):
  ```javascript
@@ -188,3 +194,12 @@ this.$pouch.getSession().then((data) => {
         this.$store.commit('UPDATE_SESSION', data);
 });
 ```
+
+## Differences with `pouch-vue`
+
+Despite the lack of event emited (but you can listen for any change using  PouchDB API); some methods and concepts are note the same.
+
+* Plugin is added to Vue with two arguments, not an Object.
+* last argument in each method was specific database name. it is  removed in favor of `$pouch['database'].the_method()`
+* `deleteAttachment` is removed in favor of a more consistent `removeAttachment`
+* liveFeed are set to null when database is destroyed.

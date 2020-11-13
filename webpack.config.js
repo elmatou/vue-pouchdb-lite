@@ -1,5 +1,7 @@
 module.exports = {
   externals: {
-    pouchdb: 'Pouchdb'
+    'pouchdb-browser': 'Pouchdb',
+    'pouchdb-live-find': 'PouchLiveFind',
+    'pouchdb-find': 'PouchFind'
   }
-};
+}; 
