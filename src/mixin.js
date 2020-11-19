@@ -76,7 +76,7 @@ export default {
           if (typeof databaseParam === 'object') {
             db = databaseParam
           } else if (typeof databaseParam === 'string') {
-            db = this.$pouch.get(databaseParam)
+            db = this.$pouch.getDB(databaseParam)
           }
           if (!db) {
             this.$emit('pouchdb-livefeed-error', {

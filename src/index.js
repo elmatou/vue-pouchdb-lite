@@ -3,8 +3,6 @@ import pouchMixin from './mixin'
 
 export default {
   install: (Vue, defaultDB, constructor) => {
-
-    // console.debug(defaultDB, constructor, pouchProxy.Constructor)
     if (defaultDB) pouchProxy.defaultDB = defaultDB
     if (constructor) pouchProxy.Constructor = constructor;
 
