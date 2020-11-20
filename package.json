@@ -1,6 +1,6 @@
 {
   "name": "vue-pouchdb-lite",
-  "version": "1.0.0",
+  "version": "0.9.0",
   "description": "Lite PouchDB plugin for Vuejs",
   "main": "dist/main.js",
   "module": "src/index.js",

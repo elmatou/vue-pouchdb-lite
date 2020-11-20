@@ -36,18 +36,22 @@ Vue.use(VuePouchdbLite, "FooDB");
 or, if you want some defaults upon database creation.
 
 ```javascript
-Vue.use(VuePouchdbLite, "FooDB", PouchDB.default({prefix: 'Bar'}));
+Vue.use(VuePouchdbLite, "FooDB", PouchDB.defaults({prefix: 'Bar'}));
 ```
 
 ## API
 ### $pouch
 
-* `$pouch` is a Proxy object targeting the default database, meaning you have access to the whole PouchDB API, even the methods added by plugins.
-* `$pouch` allow you to access all databases instantiated with it.
-
-* `$pouch` is made available as an instance property, meaning you can access it in any views or components.
+* `$pouch` is a Proxy object targeting the default database , meaning you have access to the whole PouchDB API, even the methods added by plugins.
+* `$pouch` allows you to access all databases instantiated with it `$pouch['myDB']` or `$pouch.getDB[''myDB]`.
+* `$pouch` is made available as an instance property, meaning you can access it in any views or components. just `this.$pouch`
 
 ```vue
+
+$pouch                                // <PouchDB> default database
+$pouch['myDB']                        // <PouchDB> 'myDB' in browser database
+$pouch['http://localhost:5384']       // <PouchDB> remote database
+
 <script>
   export default {
     created: function() {
@@ -58,22 +62,14 @@ Vue.use(VuePouchdbLite, "FooDB", PouchDB.default({prefix: 'Bar'}));
 ```
 
 Once created, the database are accessible through `$pouch['database_URI']`
-
 You'll have to add the needed listeners by yourself.
 
 #### Methods
 
-* `$pouch.get(database, [options])`: Returns the database object from memory or anewly created one.
-
-* `$pouch.defaults(options)`: same as [#defaults](https://pouchdb.com/api.html#defaults)
-* `$pouch.sync(otherDatabase, [options])`: Basically the same as PouchDB.sync(local, remote, {live: true, retry: true}). Also, if the browser has an active session cookie, it will fetch session data (username, etc) from the remote server. 
-**BONUS:** If your remote database runs CouchDB 2.0 or higher, you can also specify a Mango Selector that is used to filter documents coming from the remote server. Callback functions will be invoked with the name `pouchdb-[method]-[type]`. So in this case you can use `this.$on('pouchdb-sync-change', callback(data))` to listen when a change occurs. See https://pouchdb.com/api.html#sync for a full list of events you can use.
-
-* `$pouch.connect(username, password, OPTIONAL db)`: Connects you to the defaultDB or given remote DB and returns the user object on success.
-
-* `$pouch.disconnect(OPTIONAL db)`: Disconnects you from the defaultDB or given remote DB and clears the session data.
-
-* `$pouch.createUser(name, password, OPTIONAL db)`: Creates a user in the defaultDB or given remote DB and starts a new session.
+* `$pouch.getDB(database, [options])`: Returns the database object from memory or a newly created one.
+* `$pouch.sync(remoteDB, [options])`: It is a equivalent to `PouchDB.sync(defaultDB, remoteDB, default_options)`. 
+* `$pouch.pull(sourceDB, [options])`: It is a equivalent to `defaultDB.replicate.from(sourceDB, default_options)`. 
+* `$pouch.push(targetDB, [options])`: It is a equivalent to `defaultDB.replicate.to(targetDB, default_options)`. 
 
 **That's it for the new methods. Do not forget, the whole PouchDB API is directly avaliable.**
 
@@ -81,7 +77,7 @@ see :https://pouchdb.com/api.html
 
 default options (will be merged with the options passed in):
  ```javascript
-{
+default_options = {
     live: true,
     retry: true,
     back_off_function: (delay) => {
@@ -114,6 +110,7 @@ Using an options
       }
     },
     // Use the pouch property to configure the component to (reactively) read data from pouchdb.
+
     pouch: {
       // The function returns a Mango-like selector that is run against the `people` database.
       // The result of the query is assigned to the `people` property.
@@ -121,7 +118,9 @@ Using an options
         if (!this.age) return;
         return {age: this.age, type: "person"}
       },
-      // You can also specify the database dynamically (local or remote), as well as limits, skip and sort order:
+
+
+// You can also specify the database dynamically (local or remote), as well as limits, skip and sort order:
       peopleInOtherDatabase() {
         return {
           database: this.selectedDatabase, // you can pass a database string or a pouchdb instance
@@ -130,76 +129,26 @@ Using an options
           limit: this.resultsPerPage,
           skip: this.resultsPerPage * (this.currentPage - 1)
         }
+      },
+
+// If you only want to sync a single document that matches a selector, use `first: true`:
+      projectDetails() {
+        return {
+          database: 'projects',
+          selector: {_id: this.selectedProjectId},
+          first: true
+        }
       }
     }
   })
 </script>
 ```
-## Examples
-
-### Single documents
-
-If you only want to sync a single document that matches a selector, use `first: true`:
-
-```javascript
-module.exports = {
-  // ...
-  pouch: {
-    projectDetails() {
-      return {
-        database: 'mydatabase',
-        selector: {_id: this.selectedProjectId},
-        first: true
-      }
-    }
-  }
-  // ...
-}
-```
-
-### User Authentication
-
-```javascript
- this.$pouch.connect(this.credentials.username, this.credentials.password)
-    .then((res) => {
-        let isUnauthorized = res.error === 'unauthorized',
-            isOffline = res.status === 0;
-
-                if (isOffline) {
-                    return;
-                }
-
-                if (isUnauthorized) {
-                    return;
-                }
-                this.$router.push('/dashboard');
-    })
-    .catch(console.error);
-```
-
-### Handle Sessions
-```javascript
-this.$pouch.getSession().then((data) => {
-    if (data.status === 0) {
-        this.$router.push('/login');
-            console.log('most likely offline');
-            return;
-        }
-
-        if (!data.user || !data.hasAccess) {
-            this.$router.push('/login');
-            return;
-        }
-
-        this.$store.commit('UPDATE_SESSION', data);
-});
-```
 
 ## Differences with `pouch-vue`
 
-Despite the lack of event emited (but you can listen for any change using  PouchDB API); some methods and concepts are note the same.
+Despite the lack of event emited (but you can listen for any change using  PouchDB API); some methods and concepts are not the same.
 
-* Plugin is added to Vue with two arguments, not an Object.
-* last argument in each method was specific database name. it is  removed in favor of `$pouch['database'].the_method()`
-* `deleteAttachment` is removed in favor of a more consistent `removeAttachment`
+* Plugin is added to Vue with two arguments (default database name, PouchDB optionnal constructor), not an Object.
+* last argument in each method was specific database name. It is removed in favor of `$pouch['database'].the_method()`
+* all other specific methods are removed
 * liveFeed are set to null when database is destroyed.
