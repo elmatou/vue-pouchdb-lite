@@ -101,38 +101,15 @@ export default {
             })
             .on('update', (update, aggregate) => {
               if (first && aggregate) { aggregate = aggregate[0] }
-
               this.$data[key] = aggregateCache = aggregate
-
-              // this.$emit('pouchdb-livefeed-update', {
-              //     db: key,
-              //     name: db.name,
-              // });
             })
             .on('ready', () => {
               this.$data[key] = aggregateCache
-
-              // this.$emit('pouchdb-livefeed-ready', {
-              //     db: key,
-              //     name: db.name,
-              // });
-            })
-            .on('destroyed', () => {
+            });
+            
+            db.on('destroyed', () => {
               this.$data[key] = aggregateCache = [];
             })
-          // .on('cancelled', function () {
-          // this.$emit('pouchdb-livefeed-cancel', {
-          //     db: key,
-          //     name: db.name,
-          // });
-          // })
-          // .on('error', function (err) {
-          // this.$emit('pouchdb-livefeed-error', {
-          //     db: key,
-          //     name: db.name,
-          //     error: err,
-          // });
-          // });
         },
         {
           immediate: true
