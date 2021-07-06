@@ -1,15 +1,20 @@
 {
   "name": "vue-pouchdb-lite",
-  "version": "0.9.0",
+  "version": "0.9.2",
   "description": "Lite PouchDB plugin for Vuejs",
   "main": "dist/main.js",
   "module": "src/index.js",
   "scripts": {
+    "watch": "yarn run webpack --watch",
     "build": "yarn run webpack",
     "lint": "yarn run eslint --fix",
     "publish": "yarn publish"
   },
   "author": "Elmatou <elmatou@gmail.com>",
+  "bugs": {
+    "url": "https://github.com/elmatou/vue-pouchdb-lite/issues"
+  },
+  "homepage": "https://github.com/elmatou/vue-pouchdb-lite",
   "license": "MIT",
   "private": false,
   "devDependencies": {

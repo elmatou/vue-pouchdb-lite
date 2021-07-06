@@ -29,12 +29,8 @@ export default {
   // the api can be set up
   created() {
     this._liveFeeds = {}
-
     let pouchOptions = this.$options.pouch
-
-    if (!pouchOptions) {
-      return
-    }
+    if (!pouchOptions) return
 
     if (typeof pouchOptions === 'function') {
       pouchOptions = pouchOptions()
@@ -48,36 +44,32 @@ export default {
         }
       }
 
-      // if the selector changes, modify the liveFeed object
-      //
+    // if the selector changes, modify the liveFeed object
+    // There is 2 way to define a selector  
+    // pouch: {
+    //   people() {
+    //     if (!this.age) return;
+    //     return {age: this.age, type: "person"}
+    //   },
+    //   peopleInOtherDatabase() {
+    //     return {
+    //       database: this.$pouch['databaseURI'], // you can pass a database string or a pouchdb instance
+    //       selector: {type: "person"},
+    //       sort: [{name: "asc"}],
+    //       limit: this.resultsPerPage,
+    //       skip: this.resultsPerPage * (this.currentPage - 1),
+    //       fields: ['name']
+    //     }
+    //   }
+    // }
+
       this.$watch(
         pouchFn,
-        config => {
-          // if the selector is now giving a value of null or undefined, then return
-          // the previous liveFeed object will remain
-          if (!config) {
-            this.$emit('pouchdb-livefeed-error', {
-              db: key,
-              config: config,
-              error: 'Null or undefined selector'
-            })
+        ({ database, first, fields, sort, limit, skip, selector = {}, ...options }) => {
+          // merge both syntaxes.
+          selector = {...options, ...selector};
+          let db = this.$pouch.getDB(database || key);
 
-            return
-          }
-
-          let { selector, sort, skip, limit, first } = config
-          selector = selector || config
-
-          // the database could change in the config options
-          // so the key could point to a database of a different name
-          const databaseParam = config.database || key
-          let db = null
-
-          if (typeof databaseParam === 'object') {
-            db = databaseParam
-          } else if (typeof databaseParam === 'string') {
-            db = this.$pouch.getDB(databaseParam)
-          }
           if (!db) {
             this.$emit('pouchdb-livefeed-error', {
               db: key,
@@ -85,27 +77,30 @@ export default {
             })
             return
           }
-          if (this._liveFeeds[key]) {
-            this._liveFeeds[key].cancel()
-          }
+
+          // reset the liveFeed
+          if (this._liveFeeds[key]) this._liveFeeds[key].cancel()
           let aggregateCache = []
 
           // the LiveFind plugin returns a liveFeed object
           this._liveFeeds[key] = db
             .liveFind({
-              selector,
-              sort,
+              selector, 
+              fields, 
+              sort, 
+              limit, 
               skip,
-              limit,
               aggregate: true
             })
-            .on('update', (update, aggregate) => {
+            .on('update', (_, aggregate) => {
               if (first && aggregate) { aggregate = aggregate[0] }
               this.$data[key] = aggregateCache = aggregate
             })
             .on('ready', () => {
               this.$data[key] = aggregateCache
-            });
+            })
+            .on('error', console.error)
+            .catch(console.error);
             
             db.on('destroyed', () => {
               this.$data[key] = aggregateCache = [];

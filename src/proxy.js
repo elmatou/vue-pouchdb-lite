@@ -8,7 +8,7 @@ export default new Proxy(
     defaultDB: '',
     getDB(db = this.defaultDB, options = {}) {
       if (db instanceof URL) db = db.toString()
-      if (this.databases[db]) return this.databases[db]
+      if (this.databases[db] instanceof this.Constructor) return this.databases[db]
       else if (Object.values(this.databases).includes(db)) return db
       else {
         this.databases[db] = new this.Constructor(db, options)
@@ -27,11 +27,9 @@ export default new Proxy(
       return new Promise((resolve, reject) => {
         this.pull(otherDB)
           .on("complete", () => {
-            console.log('pulled')
             resolve(this.sync(otherDB, options))
           })
           .on("error", reject)
-
       })
     },
 
@@ -43,42 +41,8 @@ export default new Proxy(
       return this.getDB().replicate.to(this.getDB(targetDB), this._mergedefaults(options))
     },
 
-    // fetchUserSession() {
-    //   return new Promise(resolve => {
-    //     this.getDB()
-    //       .getDBSession()
-    //       .then(session => {
-    //         this.getDB()
-    //           .getDBUser(session.userCtx.name)
-    //           .then(userData => {
-    //             resolve({
-    //               ...session.userCtx,
-    //               ...userData
-    //             })
-    //           })
-    //       })
-    //   })
-    // },
-
-    // close(db = this.defaultDB) {
-    //   return this.getDB().close().then(() => {
-    //     if (db !== this.defaultDB) {
-    //       delete this.databases[db]
-    //     }
-    //   })
-    // },
-
-    // putAttachment(docId, rev, attachment) {
-    //   return this.getDB().putAttachment(
-    //     docId,
-    //     attachment.id,
-    //     rev ? rev : null,
-    //     attachment.data,
-    //     attachment.type
-    //   );
-    // },
-
     _backOff(delay) { return delay === 0 ? 1000 : delay * 3 },
+    
     _mergedefaults(options) {
       return {
         live: true,
@@ -91,11 +55,11 @@ export default new Proxy(
   {
 
     // TODO: Proxy the getted database
-    get: function (target, propKey, receiver) {
-      if (propKey in target) return Reflect.get(...arguments) // try to access local properties
-      else if (propKey in target.databases) return Reflect.get(target.databases, propKey, receiver) // if not, we try to access a database object
-      else if (propKey in target.getDB()) return Reflect.get(target.getDB(), propKey, receiver) // if not we try to acces defaut database propery. 
-      else return Reflect.get(target.Constructor, propKey, receiver) // if not, return a PouchDB property.
+    get: function (target, propKey, receiver) { // works for this.$pouch.prop AND this.$pouch['prop']
+      if (propKey in target) return Reflect.get(...arguments) // try to access local properties ie: this.$pouch.getDB, this.$pouch.pull, this.$pouch.push, this.$pouch.sync
+      else if (propKey in target.databases) return Reflect.get(target.databases, propKey, receiver) // if not, we try to access a database object. ie: this.$pouch['dbURI'] or this.$pouch.dbURI
+      else if (propKey in target.getDB()) return Reflect.get(target.getDB(), propKey, receiver) // if not we try to access defaut database propery. ie: this.$pouch.get, this.$pouch.allDocs, ...
+      else return Reflect.get(target.Constructor, propKey, receiver) // if not, return a PouchDB property. ie: this.$pouch.get, this.$pouch.allDocs, ...
     }
   }
 )
