@@ -99,8 +99,7 @@ export default {
             .on('ready', () => {
               this.$data[key] = aggregateCache
             })
-            .on('error', console.error)
-            .catch(console.error);
+            .on('error', console.error);
             
             db.on('destroyed', () => {
               this.$data[key] = aggregateCache = [];
